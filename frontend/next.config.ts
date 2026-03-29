@@ -4,8 +4,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Allow /widget to be embedded in iframes (Shopline storefront)
-        source: '/widget/:path*',
+        // Allow Shopline admin to embed the entire app (Embedded app mode)
+        source: '/(.*)',
         headers: [
           { key: 'X-Frame-Options', value: 'ALLOWALL' },
           { key: 'Content-Security-Policy', value: "frame-ancestors *" },
