@@ -20,7 +20,16 @@ export async function install(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const config = await ShoplineConfig.findOne();
+    let config = await ShoplineConfig.findOne();
+    // Fall back to environment variables if no DB config saved yet
+    if (!config && process.env.SHOPLINE_CLIENT_ID && process.env.SHOPLINE_CLIENT_SECRET) {
+      config = {
+        clientId: process.env.SHOPLINE_CLIENT_ID,
+        clientSecret: process.env.SHOPLINE_CLIENT_SECRET,
+        redirectUri: process.env.SHOPLINE_REDIRECT_URI || `${process.env.BACKEND_URL}/api/shopline/callback`,
+        scopes: process.env.SHOPLINE_SCOPES || 'read_products,write_products,read_orders,write_orders',
+      } as any;
+    }
     if (!config) {
       res.status(500).json({ message: 'Shopline app not configured. Go to Admin > Shopline Settings.' });
       return;
@@ -53,7 +62,15 @@ export async function callback(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const config = await ShoplineConfig.findOne();
+    let config = await ShoplineConfig.findOne();
+    if (!config && process.env.SHOPLINE_CLIENT_ID && process.env.SHOPLINE_CLIENT_SECRET) {
+      config = {
+        clientId: process.env.SHOPLINE_CLIENT_ID,
+        clientSecret: process.env.SHOPLINE_CLIENT_SECRET,
+        redirectUri: process.env.SHOPLINE_REDIRECT_URI || `${process.env.BACKEND_URL}/api/shopline/callback`,
+        scopes: process.env.SHOPLINE_SCOPES || 'read_products,write_products,read_orders,write_orders',
+      } as any;
+    }
     if (!config) {
       res.status(500).json({ message: 'App not configured' });
       return;
