@@ -5,7 +5,7 @@ export async function getAllBlindBoxes(req: Request, res: Response): Promise<voi
   try {
     const boxes = await BlindBox.findAll({
       where: { isActive: true },
-      include: [{ model: PoolItem, as: 'items', attributes: ['id', 'name', 'rarity', 'imageUrl'] as string[] }],
+      include: [{ model: PoolItem, as: 'items', attributes: ['id', 'name', 'rarity', 'imageUrl'] }],
     });
     res.json(boxes);
   } catch (err) {
