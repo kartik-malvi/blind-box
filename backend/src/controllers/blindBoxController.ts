@@ -15,7 +15,7 @@ export async function getAllBlindBoxes(req: Request, res: Response): Promise<voi
 
 export async function getBlindBoxById(req: Request, res: Response): Promise<void> {
   try {
-    const box = await BlindBox.findByPk(req.params.id as string, {
+    const box = await BlindBox.findByPk(String(req.params.id), {
       include: [{ model: PoolItem, as: 'items', attributes: ['id', 'name', 'rarity', 'weight', 'stock', 'imageUrl', 'description'] }],
     });
     if (!box) {
@@ -40,7 +40,7 @@ export async function createBlindBox(req: Request, res: Response): Promise<void>
 
 export async function updateBlindBox(req: Request, res: Response): Promise<void> {
   try {
-    const box = await BlindBox.findByPk(req.params.id as string);
+    const box = await BlindBox.findByPk(String(req.params.id));
     if (!box) {
       res.status(404).json({ message: 'Blind box not found' });
       return;
@@ -54,7 +54,7 @@ export async function updateBlindBox(req: Request, res: Response): Promise<void>
 
 export async function deleteBlindBox(req: Request, res: Response): Promise<void> {
   try {
-    const box = await BlindBox.findByPk(req.params.id as string);
+    const box = await BlindBox.findByPk(String(req.params.id));
     if (!box) {
       res.status(404).json({ message: 'Blind box not found' });
       return;
@@ -69,7 +69,7 @@ export async function deleteBlindBox(req: Request, res: Response): Promise<void>
 // Pool Items
 export async function addPoolItem(req: Request, res: Response): Promise<void> {
   try {
-    const box = await BlindBox.findByPk(req.params.id as string);
+    const box = await BlindBox.findByPk(String(req.params.id));
     if (!box) {
       res.status(404).json({ message: 'Blind box not found' });
       return;
@@ -93,7 +93,7 @@ export async function addPoolItem(req: Request, res: Response): Promise<void> {
 
 export async function updatePoolItem(req: Request, res: Response): Promise<void> {
   try {
-    const item = await PoolItem.findByPk(req.params.itemId as string);
+    const item = await PoolItem.findByPk(String(req.params.itemId));
     if (!item) {
       res.status(404).json({ message: 'Pool item not found' });
       return;
@@ -107,7 +107,7 @@ export async function updatePoolItem(req: Request, res: Response): Promise<void>
 
 export async function deletePoolItem(req: Request, res: Response): Promise<void> {
   try {
-    const item = await PoolItem.findByPk(req.params.itemId as string);
+    const item = await PoolItem.findByPk(String(req.params.itemId));
     if (!item) {
       res.status(404).json({ message: 'Pool item not found' });
       return;
