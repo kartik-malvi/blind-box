@@ -26,7 +26,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Create Account</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-900">Create Account</h1>
         {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
