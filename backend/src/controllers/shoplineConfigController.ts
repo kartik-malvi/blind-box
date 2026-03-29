@@ -69,7 +69,7 @@ export async function getInstalledShops(req: Request, res: Response): Promise<vo
 // DELETE — uninstall / deactivate a shop
 export async function deactivateShop(req: Request, res: Response): Promise<void> {
   try {
-    const shop = await Shop.findByPk(req.params.shopId);
+    const shop = await Shop.findByPk(req.params.shopId as string);
     if (!shop) {
       res.status(404).json({ message: 'Shop not found' });
       return;
