@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { ValidationError } from 'sequelize';
 import { User } from '../models';
 import { AuthRequest } from '../types';
 
@@ -26,7 +27,14 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    if (err instanceof ValidationError) {
+      const firstErr = err.errors[0];
+      let msg = firstErr?.message || 'Validation error';
+      if (firstErr?.validatorKey === 'isEmail') msg = 'Please enter a valid email address';
+      res.status(400).json({ message: msg });
+      return;
+    }
+    res.status(500).json({ message: 'Server error' });
   }
 }
 

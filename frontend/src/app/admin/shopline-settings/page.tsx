@@ -176,6 +176,22 @@ export default function ShoplineSettingsPage() {
         </div>
       )}
 
+      {/* Widget Info */}
+      <div className="bg-purple-50 border border-purple-200 rounded-2xl p-5 mb-8">
+        <p className="text-sm font-semibold text-purple-700 mb-1">Blind Box Widget — Storefront Embed</p>
+        <p className="text-xs text-purple-600 mb-3">
+          When a merchant installs the app via the link above, a floating <strong>"Blind Box"</strong> button is automatically added to every page of their Shopline store. Customers can click it to browse and buy blind boxes without leaving the store.
+        </p>
+        <a
+          href="/widget"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-white border border-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-100"
+        >
+          <ExternalLink className="w-3.5 h-3.5" /> Preview widget page
+        </a>
+      </div>
+
       {/* Installed Shops */}
       <div className="bg-white rounded-2xl shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">Installed Stores</h2>
