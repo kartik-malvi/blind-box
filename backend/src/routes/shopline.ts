@@ -14,6 +14,11 @@ const router = Router();
 router.get('/install', install);
 router.get('/callback', callback);
 
+// Debug — check what params Shopline sends (remove after testing)
+router.get('/debug-callback', (req: Request, res: Response) => {
+  res.json({ query: req.query, code_version: 'v3_no_sig_check' });
+});
+
 // Storefront embed script — injected into every page via ScriptTag
 router.get('/widget.js', (req: Request, res: Response) => {
   const frontendUrl = process.env.FRONTEND_URL || 'https://blind-box-beta.vercel.app';
