@@ -79,24 +79,34 @@ export async function callback(req: Request, res: Response): Promise<void> {
     // Signature verification skipped — Shopline's callback sign algorithm varies by version
 
     const shopDomain = `${handle}.myshopline.com`;
-    const ts = Date.now().toString();
+    // Use seconds-based timestamp (Shopline expects Unix seconds)
+    const ts = Math.floor(Date.now() / 1000).toString();
     const reqSign = makeSign(config.clientSecret, config.clientId, ts);
 
     // Exchange code for access token
-    const tokenResponse = await axios.post(
-      `https://${shopDomain}/admin/oauth/token/create`,
-      { code },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          appkey: config.clientId,
-          timestamp: ts,
-          sign: reqSign,
-        },
-      }
-    );
+    let tokenResponse: any;
+    try {
+      tokenResponse = await axios.post(
+        `https://${shopDomain}/admin/oauth/token/create`,
+        { code },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            appkey: config.clientId,
+            timestamp: ts,
+            sign: reqSign,
+          },
+        }
+      );
+    } catch (axiosErr: any) {
+      const errData = axiosErr.response?.data || axiosErr.message;
+      console.error('Token exchange failed:', JSON.stringify(errData));
+      res.status(500).json({ message: 'Token exchange failed', error: errData });
+      return;
+    }
 
     const tokenData = tokenResponse.data;
+    console.log('Token exchange response:', JSON.stringify(tokenData));
     const accessToken: string = tokenData?.data?.accessToken;
 
     if (!accessToken) {
