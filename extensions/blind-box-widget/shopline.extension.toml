@@ -1,0 +1,9 @@
+[extension]
+name = "Blind Box Widget"
+handle = "blind-box-widget"
+type = "theme"
+
+[[extensions]]
+name = "Blind Box Shop Block"
+handle = "blind-box-shop-block"
+type = "theme/app-block"
