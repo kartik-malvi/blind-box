@@ -4,10 +4,10 @@ import crypto from 'crypto';
 import { ShoplineConfig, Shop } from '../models';
 
 function makeSign(appSecret: string, appKey: string, timestamp: string): string {
-  // Shopline sign: HMAC-SHA256(appSecret, appKey + timestamp)
+  // Shopline sign: MD5(appKey + timestamp + appSecret)
   return crypto
-    .createHmac('sha256', appSecret)
-    .update(appKey + timestamp)
+    .createHash('md5')
+    .update(appKey + timestamp + appSecret)
     .digest('hex');
 }
 
