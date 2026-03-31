@@ -14,7 +14,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, [init]);
 
-  if (!mounted) return null;
-
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      {mounted ? children : <div className="min-h-screen bg-gray-50" />}
+    </QueryClientProvider>
+  );
 }

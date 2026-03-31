@@ -14,7 +14,7 @@ function signToken(userId: string, email: string, role: string): string {
 
 export async function register(req: Request, res: Response): Promise<void> {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, adminKey } = req.body;
 
     const existing = await User.findOne({ where: { email } });
     if (existing) {
@@ -22,7 +22,11 @@ export async function register(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const user = await User.create({ name, email, password });
+    const adminSecret = process.env.ADMIN_SECRET;
+    const role: 'admin' | 'customer' =
+      adminKey && adminSecret && adminKey === adminSecret ? 'admin' : 'customer';
+
+    const user = await User.create({ name, email, password, role });
     const token = signToken(user.id, user.email, user.role);
 
     res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
@@ -50,6 +54,31 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     const token = signToken(user.id, user.email, user.role);
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err });
+  }
+}
+
+export async function makeAdmin(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { adminKey } = req.body;
+    const adminSecret = process.env.ADMIN_SECRET;
+
+    if (!adminSecret || !adminKey || adminKey !== adminSecret) {
+      res.status(403).json({ message: 'Invalid admin key' });
+      return;
+    }
+
+    const user = await User.findByPk(req.user!.id);
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    await user.update({ role: 'admin' });
+    const token = signToken(user.id, user.email, 'admin');
+
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: 'admin' } });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
   }

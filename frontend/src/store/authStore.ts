@@ -7,7 +7,8 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, adminKey?: string) => Promise<void>;
+  makeAdmin: (adminKey: string) => Promise<void>;
   logout: () => void;
   init: () => void;
 }
@@ -40,16 +41,31 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  register: async (name, email, password) => {
+  register: async (name, email, password, adminKey) => {
     set({ isLoading: true });
     try {
-      const { data } = await api.post('/auth/register', { name, email, password });
+      const payload: Record<string, string> = { name, email, password };
+      if (adminKey) payload.adminKey = adminKey;
+      const { data } = await api.post('/auth/register', payload);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       set({ token: data.token, user: data.user, isLoading: false });
     } catch (err: any) {
       set({ isLoading: false });
       throw new Error(err?.response?.data?.message || 'Registration failed');
+    }
+  },
+
+  makeAdmin: async (adminKey) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await api.post('/auth/make-admin', { adminKey });
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      set({ token: data.token, user: data.user, isLoading: false });
+    } catch (err: any) {
+      set({ isLoading: false });
+      throw new Error(err?.response?.data?.message || 'Invalid admin key');
     }
   },
 

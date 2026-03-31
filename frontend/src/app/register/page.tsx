@@ -2,14 +2,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [adminKey, setAdminKey] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showAdminKey, setShowAdminKey] = useState(false);
   const [error, setError] = useState('');
   const { register, isLoading } = useAuthStore();
   const router = useRouter();
@@ -18,7 +20,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     try {
-      await register(name, email, password);
+      await register(name, email, password, adminKey || undefined);
       router.push('/shop');
     } catch (err: any) {
       setError(err?.message || 'Registration failed');
@@ -66,6 +68,26 @@ export default function RegisterPage() {
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
+
+          {/* Admin key toggle */}
+          <button
+            type="button"
+            onClick={() => setShowAdminKey(!showAdminKey)}
+            className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-600 self-start"
+          >
+            {showAdminKey ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            Have an admin key?
+          </button>
+          {showAdminKey && (
+            <input
+              type="password"
+              placeholder="Admin Key (optional)"
+              value={adminKey}
+              onChange={(e) => setAdminKey(e.target.value)}
+              className="border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            />
+          )}
+
           <button
             type="submit"
             disabled={isLoading}

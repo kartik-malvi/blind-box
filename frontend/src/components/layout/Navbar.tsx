@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
-import { ShoppingBag, Package, LogOut, User } from 'lucide-react';
+import { ShoppingBag, Package, LogOut, User, ShieldCheck } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -23,7 +23,7 @@ export default function Navbar() {
               <Link href="/orders" className="text-gray-600 hover:text-purple-600 flex items-center gap-1">
                 <ShoppingBag className="w-4 h-4" /> Orders
               </Link>
-              {user.role === 'admin' && (
+              {user.role === 'admin' ? (
                 <>
                   <Link href="/admin" className="text-gray-600 hover:text-purple-600">
                     Admin
@@ -32,6 +32,15 @@ export default function Navbar() {
                     Shopline
                   </Link>
                 </>
+              ) : (
+                <Link
+                  href="/admin/setup"
+                  className="flex items-center gap-1 text-gray-400 hover:text-purple-600 text-sm"
+                  title="Upgrade to Admin"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Admin Setup
+                </Link>
               )}
               <div className="flex items-center gap-2 text-gray-600">
                 <User className="w-4 h-4" />
