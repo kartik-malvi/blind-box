@@ -1,45 +1,25 @@
-<div class="blind-box-section" style="width:100%;padding:16px 0;">
-  <h2 style="text-align:center;margin-bottom:16px;">{{ block.settings.heading }}</h2>
+<div style="width:100%;padding:16px 0;">
   <iframe
     src="{{ block.settings.widget_url }}"
-    style="width:100%;height:{{ block.settings.height }}px;border:none;border-radius:16px;display:block;"
+    style="width:100%;height:700px;border:none;border-radius:16px;display:block;"
     allow="payment *"
     loading="lazy"
     title="Blind Box Shop"
   ></iframe>
 </div>
-
-{% schema %}
+{{{{raw}}}}
+{{ #schema }}
 {
   "name": "Blind Box Shop",
   "target": "section",
   "settings": [
     {
       "type": "text",
-      "id": "heading",
-      "label": "Heading",
-      "default": "Blind Box Shop"
-    },
-    {
-      "type": "text",
       "id": "widget_url",
       "label": "Widget URL",
       "default": "https://blind-box-beta.vercel.app/widget"
-    },
-    {
-      "type": "range",
-      "id": "height",
-      "label": "Height (px)",
-      "min": 400,
-      "max": 1200,
-      "step": 50,
-      "default": 700
-    }
-  ],
-  "presets": [
-    {
-      "name": "Blind Box Shop"
     }
   ]
 }
-{% endschema %}
+{{ /schema }}
+{{{{/raw}}}}
