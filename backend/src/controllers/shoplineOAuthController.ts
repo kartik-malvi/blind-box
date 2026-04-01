@@ -80,7 +80,7 @@ export async function callback(req: Request, res: Response): Promise<void> {
 
     const shopDomain = `${handle}.myshopline.com`;
     // Use seconds-based timestamp (Shopline expects Unix seconds)
-    const ts = Math.floor(Date.now() / 1000).toString();
+    const ts = Date.now().toString();
     const reqSign = makeSign(config.clientSecret, config.clientId, ts);
 
     // Exchange code for access token

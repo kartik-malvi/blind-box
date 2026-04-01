@@ -1,7 +1,7 @@
-api_version = "2024-01"
-
-[[extensions]]
+[extension]
 type = "theme_app_extension"
-name = "blind-box-widget"
-handle = "blind-box-widget"
-uuid = "4b1250e6-980d-4384-b73d-c29299f135ac"
+name = "Blind Box Widget"
+version = "1.0.0"
+
+[[blocks]]
+name = "blind-box"

@@ -1,6 +1,7 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Package, ShoppingCart, Loader2, X, Gift } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -8,24 +9,40 @@ import { BlindBox } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 
-export default function WidgetPage() {
+const rarityColor: Record<string, string> = {
+  common: 'bg-gray-100 text-gray-600',
+  uncommon: 'bg-green-100 text-green-700',
+  rare: 'bg-blue-100 text-blue-700',
+  epic: 'bg-purple-100 text-purple-700',
+  legendary: 'bg-yellow-100 text-yellow-700',
+};
+
+function WidgetContent() {
+  const searchParams = useSearchParams();
+  const boxId = searchParams.get('boxId');
   const { user } = useAuthStore();
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<{ name: string; rarity: string; imageUrl?: string } | null>(null);
 
   const { data: boxes, isLoading, refetch } = useQuery<BlindBox[]>({
-    queryKey: ['widget-blind-boxes'],
-    queryFn: async () => (await api.get('/blind-boxes')).data,
+    queryKey: ['widget-blind-boxes', boxId],
+    queryFn: async () => {
+      if (boxId) {
+        const { data } = await api.get(`/blind-boxes/${boxId}`);
+        return [data];
+      }
+      return (await api.get('/blind-boxes')).data;
+    },
   });
 
-  const handlePurchase = async (boxId: string) => {
+  const handlePurchase = async (id: string) => {
     if (!user) {
-      window.top ? (window.top.location.href = `${process.env.NEXT_PUBLIC_APP_URL || ''}/login`) : window.location.assign('/login');
+      window.location.assign('/login?redirect=/widget' + (boxId ? `?boxId=${boxId}` : ''));
       return;
     }
-    setPurchasing(boxId);
+    setPurchasing(id);
     try {
-      const { data } = await api.post('/orders/purchase', { blindBoxId: boxId });
+      const { data } = await api.post('/orders/purchase', { blindBoxId: id });
       setRevealed(data.revealedItem);
       refetch();
     } catch (err: any) {
@@ -33,14 +50,6 @@ export default function WidgetPage() {
     } finally {
       setPurchasing(null);
     }
-  };
-
-  const rarityColor: Record<string, string> = {
-    common: 'bg-gray-100 text-gray-600',
-    uncommon: 'bg-green-100 text-green-700',
-    rare: 'bg-blue-100 text-blue-700',
-    epic: 'bg-purple-100 text-purple-700',
-    legendary: 'bg-yellow-100 text-yellow-700',
   };
 
   return (
@@ -90,14 +99,12 @@ export default function WidgetPage() {
           </div>
         )}
 
-        {/* Loading */}
         {isLoading && (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
           </div>
         )}
 
-        {/* Empty */}
         {!isLoading && (!boxes || boxes.length === 0) && (
           <div className="flex flex-col items-center py-16 text-gray-400">
             <Package className="w-14 h-14 mb-3" />
@@ -105,7 +112,6 @@ export default function WidgetPage() {
           </div>
         )}
 
-        {/* Boxes */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {boxes?.map((box) => (
             <div key={box.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex flex-col">
@@ -138,5 +144,17 @@ export default function WidgetPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function WidgetPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+      </div>
+    }>
+      <WidgetContent />
+    </Suspense>
   );
 }
