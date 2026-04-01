@@ -118,7 +118,11 @@ export async function callback(req: Request, res: Response): Promise<void> {
     const accessToken: string = tokenData?.data?.accessToken;
 
     if (!accessToken) {
-      res.status(500).json({ message: 'No access token in Shopline response', raw: tokenData });
+      res.status(500).json({
+        message: 'No access token in Shopline response',
+        raw: tokenData,
+        debug: { appKey: config.clientId, timestamp: ts, shopDomain },
+      });
       return;
     }
 
