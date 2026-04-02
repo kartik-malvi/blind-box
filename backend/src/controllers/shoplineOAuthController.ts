@@ -44,8 +44,9 @@ export async function install(req: Request, res: Response): Promise<void> {
       redirectUri: config.redirectUri,
     });
 
+    // Try both URL formats — send a page that redirects via JS to preserve the hash fragment
     const authUrl = `https://${shopDomain}/admin/oauth-web/#/oauth/authorize?${params.toString()}`;
-    res.redirect(authUrl);
+    res.send(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${authUrl}"></head><body><script>window.location.href="${authUrl}";</script><p>Redirecting to Shopline authorization...</p></body></html>`);
   } catch (err) {
     res.status(500).json({ message: 'Install failed', error: (err as Error).message });
   }
