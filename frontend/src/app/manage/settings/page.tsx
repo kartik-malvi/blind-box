@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { CheckCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 interface ShoplineConfig {
   clientId: string;

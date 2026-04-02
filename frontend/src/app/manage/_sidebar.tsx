@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Gift, Package, ShoppingBag, Settings, ChevronDown, ChevronRight, Plus, List } from 'lucide-react';
+import { Gift, Package, ShoppingBag, Settings, ChevronDown, ChevronRight } from 'lucide-react';
 
 const nav = [
   {

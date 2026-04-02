@@ -5,7 +5,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { BlindBox, PoolItem } from '@/types';
 import { formatPrice, rarityColors } from '@/lib/utils';
-import { Plus, Trash2, ChevronDown, ChevronUp, Package, Copy, CheckCircle, Code, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Package, Copy, CheckCircle, Code } from 'lucide-react';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://blind-box-beta.vercel.app';
 

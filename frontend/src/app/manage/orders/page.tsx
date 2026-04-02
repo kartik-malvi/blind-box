@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Package } from 'lucide-react';
-import { rarityColors, formatPrice } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 
 interface AdminOrder {
   id: string;
@@ -62,7 +62,7 @@ export default function ManageOrdersPage() {
                     {order.revealedItem ? (
                       <div className="flex items-center gap-2">
                         <span>{order.revealedItem.name}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${rarityColors[order.revealedItem.rarity] ?? ''}`}>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium capitalize bg-gray-100 text-gray-600">
                           {order.revealedItem.rarity}
                         </span>
                       </div>
