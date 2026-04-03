@@ -81,7 +81,7 @@ export async function callback(req: Request, res: Response): Promise<void> {
 
     const shopDomain = `${handle}.myshopline.com`;
     const ts = Date.now().toString(); // milliseconds
-    const body = JSON.stringify({ code, redirectUri: config.redirectUri });
+    const body = JSON.stringify({ code }); // only code — no redirectUri
     const reqSign = makeSign(config.clientSecret, body, ts);
 
     console.log('[OAuth] appKey:', config.clientId);
