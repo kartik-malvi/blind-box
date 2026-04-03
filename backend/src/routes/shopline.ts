@@ -16,7 +16,7 @@ router.get('/callback', callback);
 
 // Debug — check what params Shopline sends (remove after testing)
 router.get('/debug-callback', (req: Request, res: Response) => {
-  res.json({ query: req.query, code_version: 'v3_no_sig_check' });
+  res.json({ query: req.query, code_version: 'v4_hmac_code_only' });
 });
 
 // Storefront embed script — injected into every page via ScriptTag
