@@ -140,13 +140,15 @@ export async function callback(req: Request, res: Response): Promise<void> {
     // Register ScriptTag so the blind box widget appears on the storefront
     const widgetSrc = `${process.env.BACKEND_URL || `https://${req.headers.host}`}/api/shopline/widget.js`;
     try {
-      await axios.post(
+      const stResult = await axios.post(
         `https://${shopDomain}/admin/open/2022-01/script_tags.json`,
         { script_tag: { event: 'onload', src: widgetSrc } },
         { headers: { 'X-Shopline-Access-Token': accessToken } }
       );
-    } catch {
+      console.log('[ScriptTag] Registered:', JSON.stringify(stResult.data));
+    } catch (stErr: any) {
       // ScriptTag registration is best-effort; don't block install
+      console.error('[ScriptTag] Registration failed:', JSON.stringify(stErr.response?.data || stErr.message));
     }
 
     // Redirect merchant to their Shopline admin

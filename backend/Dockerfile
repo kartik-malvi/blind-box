@@ -9,5 +9,7 @@ COPY . .
 
 EXPOSE 5000
 
-# v4 — HMAC-SHA256 sign, body={code} only
+# v5 — forced rebuild, manual ScriptTag route added
+ARG BUILD_DATE
+RUN echo "Build: $BUILD_DATE"
 CMD ["npx", "ts-node", "--transpile-only", "src/index.ts"]

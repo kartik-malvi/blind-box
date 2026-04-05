@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import axios from 'axios';
 import { install, callback } from '../controllers/shoplineOAuthController';
 import {
   getConfig,
@@ -6,6 +7,7 @@ import {
   getInstalledShops,
   deactivateShop,
 } from '../controllers/shoplineConfigController';
+import { Shop } from '../models';
 import { authenticate, requireAdmin } from '../middleware/auth';
 
 const router = Router();
@@ -16,7 +18,7 @@ router.get('/callback', callback);
 
 // Debug — check what params Shopline sends (remove after testing)
 router.get('/debug-callback', (req: Request, res: Response) => {
-  res.json({ query: req.query, code_version: 'v4_hmac_code_only' });
+  res.json({ query: req.query, code_version: 'v5_with_manual_scripttag' });
 });
 
 // Storefront embed script — injected into every page via ScriptTag
@@ -61,5 +63,52 @@ router.post('/config', authenticate, requireAdmin, saveConfig);
 // Installed shops management
 router.get('/shops', authenticate, requireAdmin, getInstalledShops);
 router.delete('/shops/:shopId', authenticate, requireAdmin, deactivateShop);
+
+// Manual ScriptTag registration — call this if OAuth completed but ScriptTag wasn't registered
+// POST /api/shopline/register-scripttag  body: { shopDomain, accessToken }
+router.post('/register-scripttag', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const { shopDomain, accessToken } = req.body as { shopDomain?: string; accessToken?: string };
+  if (!shopDomain || !accessToken) {
+    res.status(400).json({ message: 'shopDomain and accessToken are required' });
+    return;
+  }
+  const widgetSrc = `${process.env.BACKEND_URL}/api/shopline/widget.js`;
+  try {
+    const result = await axios.post(
+      `https://${shopDomain}/admin/open/2022-01/script_tags.json`,
+      { script_tag: { event: 'onload', src: widgetSrc } },
+      { headers: { 'X-Shopline-Access-Token': accessToken } }
+    );
+    // Save/update the shop record with the access token
+    await Shop.upsert({ shopDomain, accessToken, isActive: true, installedAt: new Date() } as any);
+    res.json({ message: 'ScriptTag registered', data: result.data });
+  } catch (err: any) {
+    res.status(500).json({ message: 'ScriptTag registration failed', error: err.response?.data || err.message });
+  }
+});
+
+// Check if shop is installed and has ScriptTag
+router.get('/shop-status', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const { shopDomain } = req.query as { shopDomain?: string };
+  if (!shopDomain) {
+    res.status(400).json({ message: 'shopDomain query param required' });
+    return;
+  }
+  const shop = await Shop.findOne({ where: { shopDomain } } as any);
+  if (!shop) {
+    res.json({ installed: false, message: 'Shop not found in database' });
+    return;
+  }
+  // Check ScriptTags currently registered
+  try {
+    const { data } = await axios.get(
+      `https://${shopDomain}/admin/open/2022-01/script_tags.json`,
+      { headers: { 'X-Shopline-Access-Token': (shop as any).accessToken } }
+    );
+    res.json({ installed: true, shopDomain, scriptTags: data });
+  } catch (err: any) {
+    res.json({ installed: true, shopDomain, scriptTagCheckFailed: err.response?.data || err.message });
+  }
+});
 
 export default router;
