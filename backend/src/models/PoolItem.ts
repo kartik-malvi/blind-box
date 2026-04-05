@@ -13,6 +13,8 @@ interface PoolItemAttributes {
   weight: number;       // Probability weight (e.g. common=70, rare=20, legendary=10)
   stock: number;        // Remaining inventory
   totalStock: number;   // Original inventory
+  shoplineProductId?: string;   // Linked Shopline product ID (for inventory sync)
+  shoplineVariantId?: string;   // Linked Shopline variant ID
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -29,6 +31,8 @@ class PoolItem extends Model<PoolItemAttributes, PoolItemCreationAttributes> imp
   declare weight: number;
   declare stock: number;
   declare totalStock: number;
+  declare shoplineProductId: string;
+  declare shoplineVariantId: string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -78,6 +82,14 @@ PoolItem.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+    },
+    shoplineProductId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    shoplineVariantId: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   },
   {

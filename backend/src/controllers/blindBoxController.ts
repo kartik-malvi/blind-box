@@ -74,7 +74,7 @@ export async function addPoolItem(req: Request, res: Response): Promise<void> {
       res.status(404).json({ message: 'Blind box not found' });
       return;
     }
-    const { name, description, imageUrl, rarity, weight, stock } = req.body;
+    const { name, description, imageUrl, rarity, weight, stock, shoplineProductId, shoplineVariantId } = req.body;
     const item = await PoolItem.create({
       blindBoxId: box.id,
       name,
@@ -84,6 +84,8 @@ export async function addPoolItem(req: Request, res: Response): Promise<void> {
       weight,
       stock,
       totalStock: stock,
+      shoplineProductId: shoplineProductId || null,
+      shoplineVariantId: shoplineVariantId || null,
     });
     res.status(201).json(item);
   } catch (err) {

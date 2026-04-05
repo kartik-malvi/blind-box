@@ -1,11 +1,121 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { BlindBox, PoolItem } from '@/types';
 import { formatPrice, rarityColors } from '@/lib/utils';
-import { Plus, Trash2, ChevronDown, ChevronUp, Package, Copy, CheckCircle, Code } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Package, Copy, CheckCircle, Code, Search, X, ShoppingBag } from 'lucide-react';
+
+interface ShoplineProduct {
+  id: string;
+  title: string;
+  image: string | null;
+  variants: { id: string; title: string; price: string; inventory_quantity: number }[];
+}
+
+function ProductPicker({ shopDomain, onSelect }: {
+  shopDomain: string;
+  onSelect: (p: ShoplineProduct, variantId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  const { data, isLoading, error } = useQuery<{ products: ShoplineProduct[] }>({
+    queryKey: ['shopline-products', shopDomain, search],
+    queryFn: () => api.get(`/shopline/store-products?shopDomain=${shopDomain}&search=${search}`).then(r => r.data),
+    enabled: open && !!shopDomain,
+  });
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative col-span-2">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 border border-purple-300 bg-purple-50 rounded-xl px-3 py-2.5 text-sm text-purple-700 font-medium hover:bg-purple-100 transition-colors"
+      >
+        <ShoppingBag className="w-4 h-4" />
+        Pick from store products
+        <ChevronDown className="w-3.5 h-3.5 ml-auto" />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+              <Search className="w-3.5 h-3.5 text-gray-400" />
+              <input
+                autoFocus
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search products…"
+                className="flex-1 bg-transparent text-sm outline-none"
+              />
+              {search && <button onClick={() => setSearch('')}><X className="w-3 h-3 text-gray-400" /></button>}
+            </div>
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {isLoading && <p className="text-center text-sm text-gray-400 py-6">Loading products…</p>}
+            {error && <p className="text-center text-sm text-red-400 py-6">Could not load products. Complete OAuth install first.</p>}
+            {data?.products?.map(product => (
+              <div key={product.id} className="border-b border-gray-50 last:border-0">
+                {product.variants.length === 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => { onSelect(product, product.variants[0].id); setOpen(false); }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 text-left"
+                  >
+                    {product.image
+                      ? <img src={product.image} alt={product.title} className="w-9 h-9 rounded-lg object-cover border border-gray-100" />
+                      : <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center"><Package className="w-4 h-4 text-gray-300" /></div>
+                    }
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{product.title}</p>
+                      <p className="text-xs text-gray-400">{product.variants[0].inventory_quantity} in stock · ${product.variants[0].price}</p>
+                    </div>
+                  </button>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      {product.image
+                        ? <img src={product.image} alt={product.title} className="w-9 h-9 rounded-lg object-cover border border-gray-100" />
+                        : <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center"><Package className="w-4 h-4 text-gray-300" /></div>
+                      }
+                      <p className="text-sm font-medium text-gray-900">{product.title}</p>
+                    </div>
+                    {product.variants.map(v => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => { onSelect(product, v.id); setOpen(false); }}
+                        className="w-full text-left px-12 py-1.5 hover:bg-gray-50 flex items-center justify-between"
+                      >
+                        <span className="text-xs text-gray-600">{v.title}</span>
+                        <span className="text-xs text-gray-400">{v.inventory_quantity} in stock · ${v.price}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {data?.products?.length === 0 && (
+              <p className="text-center text-sm text-gray-400 py-6">No products found</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://blind-box-beta.vercel.app';
 
@@ -53,7 +163,15 @@ function EmbedCode({ boxId, boxName }: { boxId: string; boxName: string }) {
 export default function ManagePage() {
   const qc = useQueryClient();
   const [expandedBox, setExpandedBox] = useState<string | null>(null);
-  const [itemForm, setItemForm] = useState({ name: '', rarity: 'common', weight: '10', stock: '100', imageUrl: '', description: '' });
+  const [itemForm, setItemForm] = useState({
+    name: '', rarity: 'common', weight: '10', stock: '100',
+    imageUrl: '', description: '', shoplineProductId: '', shoplineVariantId: '',
+  });
+
+  // Derive shop domain from the current page's hostname (embedded in Shopline admin)
+  const shopDomain = typeof window !== 'undefined'
+    ? window.location.hostname.replace('/admin', '')
+    : '';
 
   const { data: boxes, isLoading } = useQuery<BlindBox[]>({
     queryKey: ['manage-blind-boxes'],
@@ -71,10 +189,12 @@ export default function ManagePage() {
         ...payload,
         weight: parseInt(payload.weight),
         stock: parseInt(payload.stock),
+        shoplineProductId: payload.shoplineProductId || undefined,
+        shoplineVariantId: payload.shoplineVariantId || undefined,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['manage-blind-boxes'] });
-      setItemForm({ name: '', rarity: 'common', weight: '10', stock: '100', imageUrl: '', description: '' });
+      setItemForm({ name: '', rarity: 'common', weight: '10', stock: '100', imageUrl: '', description: '', shoplineProductId: '', shoplineVariantId: '' });
     },
   });
 
@@ -159,7 +279,24 @@ export default function ManagePage() {
 
                   <h4 className="font-semibold text-sm text-gray-700 mt-5 mb-3">Add Item to Pool</h4>
                   <div className="grid grid-cols-2 gap-2 mb-3">
-                    <input className="input-base" placeholder="Item Name" value={itemForm.name}
+                    {/* Product picker — fills name/image/stock from store */}
+                    <ProductPicker
+                      shopDomain={shopDomain}
+                      onSelect={(product, variantId) => {
+                        const variant = product.variants.find(v => v.id === variantId) || product.variants[0];
+                        setItemForm({
+                          ...itemForm,
+                          name: product.variants.length > 1
+                            ? `${product.title} – ${variant.title}`
+                            : product.title,
+                          imageUrl: product.image || '',
+                          stock: String(variant.inventory_quantity || 1),
+                          shoplineProductId: product.id,
+                          shoplineVariantId: variantId,
+                        });
+                      }}
+                    />
+                    <input className="input-base col-span-2" placeholder="Item Name (auto-filled from product)" value={itemForm.name}
                       onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} />
                     <select className="input-base" value={itemForm.rarity}
                       onChange={(e) => setItemForm({ ...itemForm, rarity: e.target.value })}>
@@ -169,10 +306,16 @@ export default function ManagePage() {
                     </select>
                     <input className="input-base" placeholder="Weight (70=common, 10=rare)" type="number" value={itemForm.weight}
                       onChange={(e) => setItemForm({ ...itemForm, weight: e.target.value })} />
-                    <input className="input-base" placeholder="Stock quantity" type="number" value={itemForm.stock}
+                    <input className="input-base" placeholder="Stock (auto-filled)" type="number" value={itemForm.stock}
                       onChange={(e) => setItemForm({ ...itemForm, stock: e.target.value })} />
-                    <input className="input-base col-span-2" placeholder="Item Image URL (optional)" value={itemForm.imageUrl}
+                    <input className="input-base" placeholder="Item Image URL (auto-filled)" value={itemForm.imageUrl}
                       onChange={(e) => setItemForm({ ...itemForm, imageUrl: e.target.value })} />
+                    {itemForm.shoplineProductId && (
+                      <p className="col-span-2 text-xs text-purple-600 bg-purple-50 rounded-lg px-3 py-1.5">
+                        Linked to Shopline product ID: {itemForm.shoplineProductId}
+                        {itemForm.shoplineVariantId && ` · variant: ${itemForm.shoplineVariantId}`}
+                      </p>
+                    )}
                   </div>
                   <button
                     onClick={() => addItem.mutate({ boxId: box.id, payload: itemForm })}

@@ -64,6 +64,47 @@ router.post('/config', authenticate, requireAdmin, saveConfig);
 router.get('/shops', authenticate, requireAdmin, getInstalledShops);
 router.delete('/shops/:shopId', authenticate, requireAdmin, deactivateShop);
 
+// Fetch products from the installed Shopline store (for pool item picker)
+// GET /api/shopline/store-products?shopDomain=testlive.myshopline.com&search=shirt
+router.get('/store-products', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const { shopDomain, search } = req.query as { shopDomain?: string; search?: string };
+  if (!shopDomain) {
+    res.status(400).json({ message: 'shopDomain query param required' });
+    return;
+  }
+  const shop = await Shop.findOne({ where: { shopDomain } } as any);
+  if (!shop) {
+    res.status(404).json({ message: 'Shop not installed. Complete OAuth first.' });
+    return;
+  }
+  try {
+    const params: Record<string, string> = { limit: '50' };
+    if (search) params.title = search;
+    const { data } = await axios.get(
+      `https://${shopDomain}/admin/open/2022-01/products.json`,
+      {
+        headers: { 'X-Shopline-Access-Token': (shop as any).accessToken },
+        params,
+      }
+    );
+    // Normalize: return array of { id, title, image, variants: [{id, title, inventory_quantity, price}] }
+    const products = (data?.products || data?.data?.products || []).map((p: any) => ({
+      id: String(p.id),
+      title: p.title,
+      image: p.image?.src || p.images?.[0]?.src || null,
+      variants: (p.variants || []).map((v: any) => ({
+        id: String(v.id),
+        title: v.title,
+        price: v.price,
+        inventory_quantity: v.inventory_quantity ?? v.inventoryQuantity ?? 0,
+      })),
+    }));
+    res.json({ products });
+  } catch (err: any) {
+    res.status(500).json({ message: 'Failed to fetch products', error: err.response?.data || err.message });
+  }
+});
+
 // Manual ScriptTag registration — call this if OAuth completed but ScriptTag wasn't registered
 // POST /api/shopline/register-scripttag  body: { shopDomain, accessToken }
 router.post('/register-scripttag', authenticate, requireAdmin, async (req: Request, res: Response) => {
