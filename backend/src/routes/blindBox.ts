@@ -8,6 +8,7 @@ import {
   addPoolItem,
   updatePoolItem,
   deletePoolItem,
+  autoCreateBlindBox,
 } from '../controllers/blindBoxController';
 import { authenticate, requireAdmin } from '../middleware/auth';
 
@@ -18,6 +19,7 @@ router.get('/', getAllBlindBoxes);
 router.get('/:id', getBlindBoxById);
 
 // Admin only
+router.post('/auto-create', authenticate, requireAdmin, autoCreateBlindBox);
 router.post('/', authenticate, requireAdmin, createBlindBox);
 router.put('/:id', authenticate, requireAdmin, updateBlindBox);
 router.delete('/:id', authenticate, requireAdmin, deleteBlindBox);
