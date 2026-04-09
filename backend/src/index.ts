@@ -37,7 +37,7 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 
 // Sync DB and start server
 sequelize
-  .sync({ alter: process.env.NODE_ENV === 'development' })
+  .sync({ alter: { drop: false } })   // adds new columns, never drops existing ones
   .then(() => {
     console.log('Database synced');
     app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

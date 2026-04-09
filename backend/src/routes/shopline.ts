@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
+import crypto from 'crypto';
 import { install, callback } from '../controllers/shoplineOAuthController';
 import {
   getConfig,
@@ -7,7 +8,8 @@ import {
   getInstalledShops,
   deactivateShop,
 } from '../controllers/shoplineConfigController';
-import { Shop } from '../models';
+import { Shop, BlindBox, PoolItem, Order, User, sequelize } from '../models';
+import { selectItemByWeight, decrementStock } from '../services/blindBoxService';
 import { authenticate, requireAdmin } from '../middleware/auth';
 
 const router = Router();
@@ -149,6 +151,116 @@ router.get('/shop-status', authenticate, requireAdmin, async (req: Request, res:
     res.json({ installed: true, shopDomain, scriptTags: data });
   } catch (err: any) {
     res.json({ installed: true, shopDomain, scriptTagCheckFailed: err.response?.data || err.message });
+  }
+});
+
+// ── orders/paid webhook ───────────────────────────────────────────────────────
+// Shopline calls this when a customer's payment is confirmed.
+// We identify if any line item is a blind box, run the reveal, save the order.
+router.post('/webhooks/order-paid', async (req: Request, res: Response) => {
+  // Acknowledge immediately — Shopline expects fast 200
+  res.status(200).json({ received: true });
+
+  try {
+    const order = req.body as any;
+    const shopDomain = (req.headers['x-shopline-shop-domain'] as string)
+      || (req.headers['x-shopline-domain'] as string)
+      || '';
+
+    const lineItems: any[] = order.line_items || order.lineItems || [];
+    const customerEmail: string = order.customer?.email || order.email || '';
+    const shoplineOrderId: string = String(order.id || '');
+
+    if (!shoplineOrderId || lineItems.length === 0) return;
+
+    // Find all active blind boxes that have a Shopline product linked
+    const blindBoxes = await BlindBox.findAll({
+      where: { isActive: true },
+      include: [{ model: PoolItem, as: 'items' }],
+    } as any) as any[];
+
+    // Map shoplineProductId → blind box for quick lookup
+    const productMap = new Map<string, any>();
+    for (const box of blindBoxes) {
+      if (box.shoplineProductId) productMap.set(String(box.shoplineProductId), box);
+    }
+
+    for (const lineItem of lineItems) {
+      const productId = String(lineItem.product_id || lineItem.productId || '');
+      const box = productMap.get(productId);
+      if (!box) continue;
+
+      // Skip if already revealed for this Shopline order
+      const existing = await Order.findOne({ where: { shoplineOrderId } } as any);
+      if (existing) continue;
+
+      const transaction = await sequelize.transaction();
+      try {
+        const items = box.items as PoolItem[];
+        const selectedItem = selectItemByWeight(items);
+        if (!selectedItem) {
+          await transaction.rollback();
+          console.error(`[Webhook] Blind box "${box.name}" is out of stock for order ${shoplineOrderId}`);
+          continue;
+        }
+
+        await decrementStock(selectedItem, transaction);
+
+        // Find or create a guest user
+        let user = await User.findOne({ where: { email: customerEmail || `guest+${shoplineOrderId}@blindbox.app` }, transaction } as any);
+        if (!user) {
+          const randomPw = crypto.randomBytes(16).toString('hex');
+          user = await User.create({
+            name: `${order.customer?.first_name || ''} ${order.customer?.last_name || ''}`.trim() || 'Guest',
+            email: customerEmail || `guest+${shoplineOrderId}@blindbox.app`,
+            password: randomPw,
+            role: 'customer',
+          }, { transaction });
+        }
+
+        await Order.create({
+          userId: (user as any).id,
+          blindBoxId: box.id,
+          poolItemId: (selectedItem as any).id,
+          quantity: lineItem.quantity || 1,
+          totalPrice: parseFloat(lineItem.price || box.price),
+          status: 'paid',
+          revealedAt: new Date(),
+          shoplineOrderId,
+          customerEmail,
+        } as any, { transaction });
+
+        await transaction.commit();
+        console.log(`[Webhook] Revealed "${(selectedItem as any).name}" for order ${shoplineOrderId}`);
+      } catch (err) {
+        await transaction.rollback();
+        console.error('[Webhook] Reveal failed:', (err as Error).message);
+      }
+    }
+  } catch (err) {
+    console.error('[Webhook] Handler error:', (err as Error).message);
+  }
+});
+
+// Public reveal lookup — customer visits this after checkout to see their item
+// GET /api/shopline/reveal/:shoplineOrderId
+router.get('/reveal/:shoplineOrderId', async (req: Request, res: Response) => {
+  try {
+    const order = await Order.findOne({
+      where: { shoplineOrderId: req.params.shoplineOrderId },
+      include: [
+        { model: BlindBox, as: 'blindBox', attributes: ['id', 'name', 'price', 'imageUrl'] },
+        { model: PoolItem, as: 'revealedItem', attributes: ['id', 'name', 'rarity', 'imageUrl', 'description'] },
+      ],
+    } as any);
+
+    if (!order) {
+      res.status(404).json({ message: 'Reveal not found. Payment may still be processing — try again in a moment.' });
+      return;
+    }
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: (err as Error).message });
   }
 });
 

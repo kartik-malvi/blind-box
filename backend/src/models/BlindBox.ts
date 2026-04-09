@@ -8,6 +8,7 @@ interface BlindBoxAttributes {
   price: number;
   imageUrl?: string;
   isActive: boolean;
+  shoplineProductId?: string;   // Shopline product ID — set after product is created in store
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -21,6 +22,7 @@ class BlindBox extends Model<BlindBoxAttributes, BlindBoxCreationAttributes> imp
   declare price: number;
   declare imageUrl: string;
   declare isActive: boolean;
+  declare shoplineProductId: string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -51,6 +53,10 @@ BlindBox.init(
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+    },
+    shoplineProductId: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   },
   {

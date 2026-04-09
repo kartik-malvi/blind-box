@@ -7,11 +7,13 @@ interface OrderAttributes {
   id: string;
   userId: string;
   blindBoxId: string;
-  poolItemId?: string;      // Assigned after reveal (on purchase)
+  poolItemId?: string;        // Assigned after reveal (on purchase)
   quantity: number;
   totalPrice: number;
   status: OrderStatus;
   revealedAt?: Date;
+  shoplineOrderId?: string;   // Shopline order ID (set when order comes via webhook)
+  customerEmail?: string;     // Customer email from Shopline order
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -27,6 +29,8 @@ class Order extends Model<OrderAttributes, OrderCreationAttributes> implements O
   declare totalPrice: number;
   declare status: OrderStatus;
   declare revealedAt: Date;
+  declare shoplineOrderId: string;
+  declare customerEmail: string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -69,6 +73,14 @@ Order.init(
     },
     revealedAt: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    shoplineOrderId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    customerEmail: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
   },

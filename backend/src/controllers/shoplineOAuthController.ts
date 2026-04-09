@@ -137,6 +137,19 @@ export async function callback(req: Request, res: Response): Promise<void> {
       installedAt: new Date(),
     } as any);
 
+    // Register orders/paid webhook so we can reveal items after Shopline checkout
+    const webhookAddress = `${process.env.BACKEND_URL || `https://${req.headers.host}`}/api/shopline/webhooks/order-paid`;
+    try {
+      await axios.post(
+        `https://${shopDomain}/admin/open/2022-01/webhooks.json`,
+        { webhook: { topic: 'orders/paid', address: webhookAddress, format: 'json' } },
+        { headers: { 'X-Shopline-Access-Token': accessToken } }
+      );
+      console.log('[Webhook] Registered orders/paid webhook:', webhookAddress);
+    } catch (whErr: any) {
+      console.error('[Webhook] Registration failed:', JSON.stringify(whErr.response?.data || whErr.message));
+    }
+
     // Register ScriptTag so the blind box widget appears on the storefront
     const widgetSrc = `${process.env.BACKEND_URL || `https://${req.headers.host}`}/api/shopline/widget.js`;
     try {

@@ -2,6 +2,42 @@ import { Request, Response } from 'express';
 import axios from 'axios';
 import { BlindBox, PoolItem, Shop, sequelize } from '../models';
 
+/**
+ * Create a product in the merchant's Shopline store representing this blind box.
+ * Returns the Shopline product ID, or null if store isn't installed yet.
+ */
+async function createShoplineProduct(name: string, description: string, price: number, imageUrl?: string): Promise<string | null> {
+  try {
+    const shop = await Shop.findOne({ where: { isActive: true } } as any);
+    if (!shop) return null;
+    const shopDomain = (shop as any).shopDomain;
+    const accessToken = (shop as any).accessToken;
+
+    const body: any = {
+      product: {
+        title: name,
+        body_html: description || '',
+        product_type: 'Blind Box',
+        tags: 'blind-box',
+        variants: [{ price: String(price), inventory_management: null, inventory_policy: 'continue' }],
+      },
+    };
+    if (imageUrl) body.product.images = [{ src: imageUrl }];
+
+    const { data } = await axios.post(
+      `https://${shopDomain}/admin/open/2022-01/products.json`,
+      body,
+      { headers: { 'X-Shopline-Access-Token': accessToken } }
+    );
+    const productId = data?.product?.id ?? data?.data?.product?.id ?? data?.data?.id;
+    console.log('[ShoplineProduct] Created product ID:', productId);
+    return productId ? String(productId) : null;
+  } catch (err: any) {
+    console.error('[ShoplineProduct] Failed to create:', err.response?.data || err.message);
+    return null;
+  }
+}
+
 export async function getAllBlindBoxes(req: Request, res: Response): Promise<void> {
   try {
     const boxes = await BlindBox.findAll({
@@ -33,6 +69,13 @@ export async function createBlindBox(req: Request, res: Response): Promise<void>
   try {
     const { name, description, price, imageUrl } = req.body;
     const box = await BlindBox.create({ name, description, price, imageUrl });
+
+    // Best-effort: create a matching product in the Shopline store
+    const shoplineProductId = await createShoplineProduct(name, description, price, imageUrl);
+    if (shoplineProductId) {
+      await box.update({ shoplineProductId });
+    }
+
     res.status(201).json(box);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err });
@@ -194,8 +237,12 @@ export async function autoCreateBlindBox(req: Request, res: Response): Promise<v
       return { rarity: 'common' as const, weight: 60 };
     };
 
-    // Create blind box
-    const box = await BlindBox.create({ name: title, description: description || '', price }, { transaction });
+    // Create blind box (Shopline product created outside transaction — best effort)
+    const shoplineProductId = await createShoplineProduct(title, description || '', price);
+    const box = await BlindBox.create(
+      { name: title, description: description || '', price, shoplineProductId: shoplineProductId || undefined },
+      { transaction }
+    );
 
     // Create pool items
     const poolItems = await Promise.all(
