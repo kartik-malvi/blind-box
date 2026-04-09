@@ -9,7 +9,7 @@ COPY . .
 
 EXPOSE 5000
 
-# v5 — forced rebuild, manual ScriptTag route added
-ARG BUILD_DATE
+# v6 — native Shopline checkout, webhook, reveal page
+ARG BUILD_DATE=v6
 RUN echo "Build: $BUILD_DATE"
 CMD ["npx", "ts-node", "--transpile-only", "src/index.ts"]
